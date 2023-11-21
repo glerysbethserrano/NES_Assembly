@@ -59,6 +59,8 @@ vblankwait2:          ;
 ;***************************   Main   ***************************
 
 main:
+    jsr initializePlayer1
+
     jsr load_palettes
 
     jsr LoadAttr
@@ -128,7 +130,7 @@ nmi:
   stx $2003   ;This is where the 64 sprites will be stored.
   ;-----------;
   
-  jsr loadPlayerSprites
+  jsr loadLeftAnimation
 
   ;-----------;
   lda #$02    ;
@@ -239,8 +241,442 @@ LoadBackgroundLoop4:                    ;
     rts                                 ;
 ;---------------------------------------;
 
+;----Initialize values for player 1----;
+initializePlayer1:                     ;
+  ldx #$00                             ;
+  stx INDEX_FRAME1                     ; INDEX_FRAME = 0
+  stx COUNTER_FRAME1                   ; COUNTER_FRAME1 = 0
+  stx FIX_MIRRORING                    ; FIX_MIRRORING = 0
+                                       ;
+  ldx #$0006                           ;
+  stx NMI_FRECUENCY_FRAME1             ; NMI_FRECUENCY_FRAME1 = 6
+                                       ;
+  ldx #$01                             ;
+  stx DIRECTION1                       ; DIRECTION1 = 1 = left    ***0 = right***
+                                       ;
+  jsr initializePlayer1Sprites         ; loads the sprites of the player looking still to the left
+  rts                                  ;
+                                       ;
+initializePlayer1Sprites:              ;
+  ldx #$00                             ;
+  @loop:                               ;        
+    lda initializationSprites, x       ;
+    sta $0224, x                       ; 
+    inx                                ;
+    cpx #$10                           ;
+    bne @loop                          ;
+  rts                                  ;
+;--------------------------------------;
+
+
+
+; Load character sprite while not moving
+;----------------------------------;
+loadStillFrame:                    ;
+  lda DIRECTION1                   ;
+  and #%00000001                   ; 
+  bne @else                        ;
+    jsr loadStillRight             ;If islooking to the left
+    jmp endLoadStillFrame          ;
+  @else:                           ;
+    jsr loadStillLeft              ;If islooking to the right
+endLoadStillFrame:                 ;
+  rts                              ;
+                                   ;
+loadStillLeft:                     ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda stillLeft, x               ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda stillLeft, x               ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+                                   ;
+loadStillRight:                    ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda stillRight, x              ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda stillRight, x              ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+;----------------------------------;
+
+
+; Load the animation of walking to the left
+;-----------------------------------;
+loadLeftAnimation:                  ;
+  ; lda PLAYER_STATUS1              ;
+  ; ora %00000001                   ;
+  ; sta PLAYER_STATUS1              ;
+                                    ;
+  lda DIRECTION1                    ; 
+  cmp #$00                          ;
+  bne @continue                     ;
+  lda #$01                          ;
+  sta FIX_MIRRORING                 ;
+  @continue:                        ;
+                                    ;
+  lda #$01                          ;
+  sta DIRECTION1                    ;
+                                    ;
+  lda INDEX_FRAME1                  ;
+  ldx $00                           ;
+                                    ;
+  cmp #$00                          ;
+  beq loadLeftFrame1                ;
+  cmp #$01                          ;
+  beq loadLeftFrame2                ;
+  cmp #$02                          ;
+  beq loadLeftFrame3                ;
+  cmp #$03                          ;
+  beq loadLeftFrame4                ;
+endLoadLeftAnimation:               ;
+  clc                               ;
+  lda COUNTER_FRAME1                ;
+  adc #$01                          ;
+  sta COUNTER_FRAME1                ;
+  cmp NMI_FRECUENCY_FRAME1          ;
+  bne @else1                        ;
+    lda #$00                        ;
+    sta COUNTER_FRAME1              ;
+                                    ;
+    lda INDEX_FRAME1                ;
+    adc #$01                        ;
+    cmp #$04                        ;
+    bne @else2                      ;
+      lda #$00                      ;
+    @else2:                         ;
+      sta INDEX_FRAME1              ;
+  @else1:                           ;
+    rts                             ;
+                                    ;
+                                    ;
+loadLeftFrame1:                     ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda leftFrame1, x               ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda leftFrame1, x               ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadLeftAnimation          ;
+                                    ;
+loadLeftFrame2:                     ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda leftFrame2, x               ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda leftFrame2, x               ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadLeftAnimation          ;
+                                    ;
+loadLeftFrame3:                     ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda leftFrame3, x               ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda leftFrame3, x               ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadLeftAnimation          ;
+                                    ;
+loadLeftFrame4:                     ;
+  ldx #$00                          ;
+  ldy #$00                          ; 
+  @loop:                            ;  
+    lda leftFrame4, x               ;
+    sta $0225, y                    ; 
+    iny                             ; 
+    inx                             ; 
+    lda leftFrame4, x               ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ; 
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadLeftAnimation          ;
+;-----------------------------------;
+
+;Load the animation of walking to the right
+;-----------------------------------;
+loadRightAnimation:                 ;
+  ; lda PLAYER_STATUS1              ;
+  ; and %11111110                   ;
+  ; sta PLAYER_STATUS1              ;
+                                    ;
+  lda DIRECTION1                    ; 
+  cmp #$01                          ;
+  bne @continue                     ;
+  lda #$01                          ;
+  sta FIX_MIRRORING                 ;
+  @continue:                        ;
+                                    ;
+  lda #$00                          ; 
+  sta DIRECTION1                    ;
+                                    ;
+  lda INDEX_FRAME1                  ;
+  ldx $00                           ;
+                                    ;
+  cmp #$00                          ;
+  beq loadRightFrame1               ;
+  cmp #$01                          ;
+  beq loadRightFrame2               ;
+  cmp #$02                          ;
+  beq loadRightFrame3               ;
+  cmp #$03                          ;
+  beq loadRightFrame4               ; 
+endLoadRightAnimation:              ;
+  clc                               ;
+  lda COUNTER_FRAME1                ;
+  adc #$01                          ;
+  sta COUNTER_FRAME1                ;
+  cmp NMI_FRECUENCY_FRAME1          ;
+  bne @else1                        ;
+    lda #$00                        ;
+    sta COUNTER_FRAME1              ;
+                                    ;
+    lda INDEX_FRAME1                ;
+    adc #$01                        ;
+    cmp #$04                        ;
+    bne @else2                      ;
+      lda #$00                      ; 
+    @else2:                         ;
+      sta INDEX_FRAME1              ; 
+  @else1:                           ;
+    rts                             ;
+                                    ;
+                                    ;
+loadRightFrame1:                    ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda rightFrame1, x              ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda rightFrame1, x              ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ; 
+  jmp endLoadRightAnimation         ;
+                                    ;
+loadRightFrame2:                    ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ; 
+    lda rightFrame2, x              ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda rightFrame2, x              ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ; 
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadRightAnimation         ;
+                                    ;
+loadRightFrame3:                    ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda rightFrame3, x              ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda rightFrame3, x              ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadRightAnimation         ;
+                                    ;
+loadRightFrame4:                    ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda rightFrame4, x              ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda rightFrame4, x              ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  jmp endLoadRightAnimation         ;
+;-----------------------------------;
+
+
+; Fixes a problem that occurs when reversing the tiles
+; vertically when making the character change direction.
+; This problem arises since we must remember that the
+; character is made of 4 tiles and what is inverted
+; are those 4 tiles, not the complete character.
+; So you have to reflect the tiles but also exchange positions.
+;-----------------------------------;
+checkAndFixMirroring:               ;
+  lda FIX_MIRRORING                 ;
+  cmp #$01                          ;
+  bne endCheckAndFixMirroring       ;
+    ldx $0227                       ;
+    ldy $022B                       ;
+                                    ;
+    sty $0227                       ;
+    sty $022F                       ;
+    stx $022B                       ;
+    stx $0233                       ;
+                                    ;
+    lda #$00                        ;
+    sta FIX_MIRRORING               ;
+endCheckAndFixMirroring:            ;
+  rts                               ;
+;-----------------------------------; 
+
+
+;********************* Collision *********************
+
+
+
+
+
+
+
+
+
+
+;*****************************************************
+
 
 ;--------------------------- Binary/Hexadecimal Data ---------------------------
+
+;********************** Animation **********************
+
+initializationSprites:
+  .byte INITIAL1_Y, $01, $40, INITIAL1_X + $08
+  .byte INITIAL1_Y, $02, $40, INITIAL1_X
+  .byte INITIAL1_Y + $08, $11, $40, INITIAL1_X + $08
+  .byte INITIAL1_Y + $08, $12, $40, INITIAL1_X 
+
+leftFrame1:
+  .byte $07, $40 
+  .byte $08, $40
+  .byte $17, $40
+  .byte $18, $40
+
+leftFrame2:
+  .byte $04, $40
+  .byte $05, $40 
+  .byte $14, $40
+  .byte $15, $40
+
+leftFrame3:
+  .byte $0A, $40
+  .byte $0B, $40
+  .byte $1A, $40
+  .byte $1B, $40
+
+leftFrame4:
+  .byte $04, $40
+  .byte $05, $40
+  .byte $14, $40
+  .byte $15, $40
+
+stillLeft:
+  .byte $01, $40 
+  .byte $02, $40
+  .byte $11, $40 
+  .byte $12, $40 
+
+stillRight:
+  .byte $01, $04 
+  .byte $02, $04  
+  .byte $11, $04 
+  .byte $12, $04
+
+rightFrame1:
+  .byte $07, $04 
+  .byte $08, $04
+  .byte $17, $04
+  .byte $18, $04
+
+rightFrame2:
+  .byte $04, $04
+  .byte $05, $04
+  .byte $14, $04
+  .byte $15, $04
+
+rightFrame3:
+  .byte $0A, $04 
+  .byte $0B, $04
+  .byte $1A, $04
+  .byte $1B, $04
+
+rightFrame4:
+  .byte $04, $04 
+  .byte $05, $04
+  .byte $14, $04
+  .byte $15, $04
+
+;*******************************************************
 
 ; First byte
 ; Y position
@@ -317,8 +753,7 @@ playerSprites:
     .byte $40, $1E, $40, $80  ; Y=$40(64), Sprite=$1E, Attribute=$40(01000000), X=$80(58)
     .byte $40, $1D, $40, $88  ; Y=$40(64), Sprite=$1D, Attribute=$40(01000000), X=$88(58)
 
-
-                                            
+                                      
 palettes:                            
         ;00  01   10   11                   
   .byte $0f, $37, $17, $27; 00              
@@ -330,6 +765,7 @@ palettes:
   .byte $0f, $30, $17, $27; 05   foreground         
   .byte $0f, $3c, $38, $19; 06              
   .byte $0f, $2d, $0c, $09; 07              
+
 
 attributeTable0:
   ; 7654 3210
