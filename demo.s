@@ -262,60 +262,60 @@ LoadBackgroundLoop4:                    ;
 
 playerSprites:
   stillRight:
-    .byte $AD, $01, $04, $3C  ; Y=$AD(173), Sprite=01, Palette=01, X=$3C(60)
-    .byte $AD, $02, $04, $44  ; Y=$AD(173), Sprite=02, Palette=01, X=$44(68)
-    .byte $B5, $11, $04, $3C  ; Y=$B5(181), Sprite=11, Palette=01, X=$3C(60)
-    .byte $B5, $12, $04, $44  ; Y=$B5(181), Sprite=12, Palette=01, X=$44(68)
+    .byte $AD, $01, $04, $3C  ; Y=$AD(173), Sprite=01, Attribute=$04(00000100), X=$3C(60)
+    .byte $AD, $02, $04, $44  ; Y=$AD(173), Sprite=02, Attribute=$04(00000100), X=$44(68)
+    .byte $B5, $11, $04, $3C  ; Y=$B5(181), Sprite=11, Attribute=$04(00000100), X=$3C(60)
+    .byte $B5, $12, $04, $44  ; Y=$B5(181), Sprite=12, Attribute=$04(00000100), X=$44(68)
 
   moving1Right:
-    .byte $AD, $04, $04, $4C  ; Y=$AD(173), Sprite=04, Palette=01, X=$4C(76)
-    .byte $AD, $05, $04, $54  ; Y=$AD(173), Sprite=05, Palette=01, X=$54(84)
-    .byte $B5, $14, $04, $4C  ; Y=$B5(181), Sprite=14, Palette=01, X=$4C(76)
-    .byte $B5, $15, $04, $54  ; Y=$B5(181), Sprite=15, Palette=01, X=$54(84)
+    .byte $AD, $04, $04, $4C  ; Y=$AD(173), Sprite=04, Attribute=$04(00000100), X=$4C(76)
+    .byte $AD, $05, $04, $54  ; Y=$AD(173), Sprite=05, Attribute=$04(00000100), X=$54(84)
+    .byte $B5, $14, $04, $4C  ; Y=$B5(181), Sprite=14, Attribute=$04(00000100), X=$4C(76)
+    .byte $B5, $15, $04, $54  ; Y=$B5(181), Sprite=15, Attribute=$04(00000100), X=$54(84)
 
   moving2Right:
-    .byte $AD, $07, $04, $5C  ; Y=$AD(173), Sprite=07, Palette=01, X=$5C(92)
-    .byte $AD, $08, $04, $64  ; Y=$AD(173), Sprite=08, Palette=01, X=$64(100)
-    .byte $B5, $17, $04, $5C  ; Y=$B5(181), Sprite=17, Palette=01, X=$5C(92)
-    .byte $B5, $18, $04, $64  ; Y=$B5(181), Sprite=18, Palette=01, X=$64(100)
+    .byte $AD, $07, $04, $5C  ; Y=$AD(173), Sprite=$07, Attribute=$04(00000100), X=$5C(92)
+    .byte $AD, $08, $04, $64  ; Y=$AD(173), Sprite=$08, Attribute=$04(00000100), X=$64(100)
+    .byte $B5, $17, $04, $5C  ; Y=$B5(181), Sprite=$17, Attribute=$04(00000100), X=$5C(92)
+    .byte $B5, $18, $04, $64  ; Y=$B5(181), Sprite=$18, Attribute=$04(00000100), X=$64(100)
   
   moving3Right:
-    .byte $AD, $0A, $04, $6C  ; Y=$AD(173), Sprite=0A, Palette=01, X=$6C(108)
-    .byte $AD, $0B, $04, $74  ; Y=$AD(173), Sprite=0B, Palette=01, X=$74(116)
-    .byte $B5, $1A, $04, $6C  ; Y=$B5(181), Sprite=1A, Palette=01, X=$6C(108)
-    .byte $B5, $1B, $04, $74  ; Y=$B5(181), Sprite=1B, Palette=01, X=$74(116)
-
-  stillLeft:
-    .byte $6D, $01, $40, $57  ; Y=$AD(173), Sprite=01, Palette=01, X=$57(87)
-    .byte $6D, $02, $40, $4F  ; Y=$AD(173), Sprite=02, Palette=01, X=$4F(79)
-    .byte $75, $11, $40, $57  ; Y=$B5(117), Sprite=11, Palette=01, X=57(87)
-    .byte $75, $12, $40, $4F  ; Y=$B5(117), Sprite=12, Palette=01, X=$4F(79)
-
-  moving1Left:
-    .byte $6D, $04, $40, $67  ; Y=$AD(173), Sprite=04, Palette=01, X=$67(103)
-    .byte $6D, $05, $40, $5F  ; Y=$AD(173), Sprite=05, Palette=01, X=$5F(95)
-    .byte $75, $14, $40, $67  ; Y=$B5(181), Sprite=14, Palette=01, X=$8C(103)
-    .byte $75, $15, $40, $5F  ; Y=$B5(181), Sprite=15, Palette=01, X=$67(95)
-
-  moving2Left:
-    .byte $6D, $07, $40, $77  ; Y=$AD(173), Sprite=07, Palette=01, X=$77(119)
-    .byte $6D, $08, $40, $6F  ; Y=$AD(173), Sprite=08, Palette=01, X=$6F(111)
-    .byte $75, $17, $40, $77  ; Y=$B5(181), Sprite=17, Palette=01, X=$77(119)
-    .byte $75, $18, $40, $6F  ; Y=$B5(181), Sprite=18, Palette=01, X=$6F(111)
-  
-  moving3Left:
-    .byte $6D, $0A, $40, $87  ; Y=$AD(173), Sprite=0A, Palette=01, X=$87(135)
-    .byte $6D, $0B, $40, $7F  ; Y=$AD(173), Sprite=0B, Palette=01, X=$7F(127)
-    .byte $75, $1A, $40, $87  ; Y=$B5(181), Sprite=1A, Palette=01, X=$87(135)
-    .byte $75, $1B, $40, $7F  ; Y=$B5(181), Sprite=1B, Palette=01, X=$7F(127)
-
-   deadLeft:
-    .byte $40, $1D, $04, $60  ; Y=$6c(108), Sprite=04(J), Palette=01, X=%6c(58)
-    .byte $40, $1E, $04, $68  ; Y=$6c(108), Sprite=04(J), Palette=01, X=%6c(58)
+    .byte $AD, $0A, $04, $6C  ; Y=$AD(173), Sprite=$0A, Attribute=$04(00000100), X=$6C(108)
+    .byte $AD, $0B, $04, $74  ; Y=$AD(173), Sprite=$0B, Attribute=$04(00000100), X=$74(116)
+    .byte $B5, $1A, $04, $6C  ; Y=$B5(181), Sprite=$1A, Attribute=$04(00000100), X=$6C(108)
+    .byte $B5, $1B, $04, $74  ; Y=$B5(181), Sprite=$1B, Attribute=$04(00000100), X=$74(116)
 
   deadRight:
-    .byte $40, $1E, $40, $80  ; Y=$6c(108), Sprite=04(J), Palette=01, X=%6c(58)
-    .byte $40, $1D, $40, $88  ; Y=$6c(108), Sprite=04(J), Palette=01, X=%6c(58)
+    .byte $40, $1D, $04, $60  ; Y=$40(64), Sprite=$1D, Attribute=$04(00000100), X=$60(58)
+    .byte $40, $1E, $04, $68  ; Y=$40(64), Sprite=$1E, Attribute=$04(00000100), X=$68(58)
+
+  stillLeft:
+    .byte $6D, $01, $40, $57  ; Y=$6D(109), Sprite=$01, Attribute=$40(01000000), X=$57(87) --- Flipped Horizontally
+    .byte $6D, $02, $40, $4F  ; Y=$6D(109), Sprite=$02, Attribute=$40(01000000), X=$4F(79)
+    .byte $75, $11, $40, $57  ; Y=$B5(117), Sprite=$11, Attribute=$40(01000000), X=57(87)
+    .byte $75, $12, $40, $4F  ; Y=$B5(117), Sprite=$12, Attribute=$40(01000000), X=$4F(79)
+
+  moving1Left:
+    .byte $6D, $04, $40, $67  ; Y=$6D(109), Sprite=$04, Attribute=$40(01000000), X=$67(103)
+    .byte $6D, $05, $40, $5F  ; Y=$6D(109), Sprite=$05, Attribute=$40(01000000), X=$5F(95)
+    .byte $75, $14, $40, $67  ; Y=$B5(117), Sprite=$14, Attribute=$40(01000000), X=$8C(103)
+    .byte $75, $15, $40, $5F  ; Y=$B5(117), Sprite=$15, Attribute=$40(01000000), X=$67(95)
+
+  moving2Left:
+    .byte $6D, $07, $40, $77  ; Y=$6D(109), Sprite=$07, Attribute=$40(01000000), X=$77(119)
+    .byte $6D, $08, $40, $6F  ; Y=$6D(109), Sprite=$08, Attribute=$40(01000000), X=$6F(111)
+    .byte $75, $17, $40, $77  ; Y=$B5(117), Sprite=$17, Attribute=$40(01000000), X=$77(119)
+    .byte $75, $18, $40, $6F  ; Y=$B5(117), Sprite=$18, Attribute=$40(01000000), X=$6F(111)
+  
+  moving3Left:
+    .byte $6D, $0A, $40, $87  ; Y=$6D(109), Sprite=$0A, Attribute=$40(01000000), X=$87(135)
+    .byte $6D, $0B, $40, $7F  ; Y=$6D(109), Sprite=$0B, Attribute=$40(01000000), X=$7F(127)
+    .byte $75, $1A, $40, $87  ; Y=$B5(117), Sprite=$1A, Attribute=$40(01000000), X=$87(135)
+    .byte $75, $1B, $40, $7F  ; Y=$B5(117), Sprite=$1B, Attribute=$40(01000000), X=$7F(127)
+
+  deadLeft:
+    .byte $40, $1E, $40, $80  ; Y=$40(64), Sprite=$1E, Attribute=$40(01000000), X=$80(58)
+    .byte $40, $1D, $40, $88  ; Y=$40(64), Sprite=$1D, Attribute=$40(01000000), X=$88(58)
 
 
                                             
