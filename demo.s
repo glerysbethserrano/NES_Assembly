@@ -130,7 +130,7 @@ nmi:
   stx $2003   ;This is where the 64 sprites will be stored.
   ;-----------;
   
-  jsr loadLeftAnimation
+  jsr loadRightAnimation
 
   ;-----------;
   lda #$02    ;
@@ -267,7 +267,6 @@ initializePlayer1Sprites:              ;
     bne @loop                          ;
   rts                                  ;
 ;--------------------------------------;
-
 
 
 ; Load character sprite while not moving
@@ -592,20 +591,6 @@ endCheckAndFixMirroring:            ;
 ;-----------------------------------; 
 
 
-;********************* Collision *********************
-
-
-
-
-
-
-
-
-
-
-;*****************************************************
-
-
 ;--------------------------- Binary/Hexadecimal Data ---------------------------
 
 ;********************** Animation **********************
@@ -647,34 +632,34 @@ stillLeft:
   .byte $12, $40 
 
 stillRight:
-  .byte $01, $04 
-  .byte $02, $04  
-  .byte $11, $04 
-  .byte $12, $04
+  .byte $02, $04 
+  .byte $01, $04  
+  .byte $12, $04 
+  .byte $11, $04
 
 rightFrame1:
-  .byte $07, $04 
-  .byte $08, $04
-  .byte $17, $04
+  .byte $08, $04 
+  .byte $07, $04
   .byte $18, $04
+  .byte $17, $04
 
 rightFrame2:
-  .byte $04, $04
   .byte $05, $04
-  .byte $14, $04
+  .byte $04, $04
   .byte $15, $04
+  .byte $14, $04
 
 rightFrame3:
-  .byte $0A, $04 
-  .byte $0B, $04
-  .byte $1A, $04
+  .byte $0B, $04 
+  .byte $0A, $04
   .byte $1B, $04
+  .byte $1A, $04
 
 rightFrame4:
-  .byte $04, $04 
-  .byte $05, $04
-  .byte $14, $04
+  .byte $05, $04 
+  .byte $04, $04
   .byte $15, $04
+  .byte $14, $04
 
 ;*******************************************************
 
@@ -697,11 +682,6 @@ rightFrame4:
 ; X position
 
 playerSprites:
-  stillRight:
-    .byte $AD, $01, $04, $3C  ; Y=$AD(173), Sprite=01, Attribute=$04(00000100), X=$3C(60)
-    .byte $AD, $02, $04, $44  ; Y=$AD(173), Sprite=02, Attribute=$04(00000100), X=$44(68)
-    .byte $B5, $11, $04, $3C  ; Y=$B5(181), Sprite=11, Attribute=$04(00000100), X=$3C(60)
-    .byte $B5, $12, $04, $44  ; Y=$B5(181), Sprite=12, Attribute=$04(00000100), X=$44(68)
 
   moving1Right:
     .byte $AD, $04, $04, $4C  ; Y=$AD(173), Sprite=04, Attribute=$04(00000100), X=$4C(76)
@@ -724,12 +704,6 @@ playerSprites:
   deadRight:
     .byte $40, $1D, $04, $60  ; Y=$40(64), Sprite=$1D, Attribute=$04(00000100), X=$60(58)
     .byte $40, $1E, $04, $68  ; Y=$40(64), Sprite=$1E, Attribute=$04(00000100), X=$68(58)
-
-  stillLeft:
-    .byte $6D, $01, $40, $57  ; Y=$6D(109), Sprite=$01, Attribute=$40(01000000), X=$57(87) --- Flipped Horizontally
-    .byte $6D, $02, $40, $4F  ; Y=$6D(109), Sprite=$02, Attribute=$40(01000000), X=$4F(79)
-    .byte $75, $11, $40, $57  ; Y=$B5(117), Sprite=$11, Attribute=$40(01000000), X=57(87)
-    .byte $75, $12, $40, $4F  ; Y=$B5(117), Sprite=$12, Attribute=$40(01000000), X=$4F(79)
 
   moving1Left:
     .byte $6D, $04, $40, $67  ; Y=$6D(109), Sprite=$04, Attribute=$40(01000000), X=$67(103)
