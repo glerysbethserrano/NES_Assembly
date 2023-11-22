@@ -106,7 +106,7 @@ main:
 enable_rendering:       ;
   lda #%10010000	    ; Enable NMI
   sta PPUCTRL           ; $2000
-  lda #%00011010	    ; Enable Sprites
+  lda #%00011000	    ; Enable Sprites
   sta PPUMASK           ; $2001
 ;-----------------------;
 
@@ -129,8 +129,18 @@ nmi:
   ldx #$0000  ;
   stx $2003   ;This is where the 64 sprites will be stored.
   ;-----------;
-  
-  jsr loadRightAnimation
+
+  jsr readController1
+  jsr checkLeftButtonPressed
+  jsr checkRightButtonPressed
+  jsr checkUpButtonPressed 
+  jsr checkDownButtonPressed
+  jsr checkSelectButtonPressed
+  jsr checkStartButtonPressed
+  jsr checkAButtonPressed 
+  jsr checkBButtonPressed 
+  jsr checkNotMovingPressed
+  jsr gravityEffect
 
   ;-----------;
   lda #$02    ;
@@ -246,7 +256,6 @@ initializePlayer1:                     ;
   ldx #$00                             ;
   stx INDEX_FRAME1                     ; INDEX_FRAME = 0
   stx COUNTER_FRAME1                   ; COUNTER_FRAME1 = 0
-  stx FIX_MIRRORING                    ; FIX_MIRRORING = 0
                                        ;
   ldx #$0006                           ;
   stx NMI_FRECUENCY_FRAME1             ; NMI_FRECUENCY_FRAME1 = 6
@@ -323,17 +332,13 @@ loadStillRight:                    ;
 ; Load the animation of walking to the left
 ;-----------------------------------;
 loadLeftAnimation:                  ;
-  ; lda PLAYER_STATUS1              ;
-  ; ora %00000001                   ;
-  ; sta PLAYER_STATUS1              ;
+  lda $0008                         ;
+  cmp #$01                          ;
+  bne continueLeftAnimation         ;
                                     ;
-  lda DIRECTION1                    ; 
-  cmp #$00                          ;
-  bne @continue                     ;
-  lda #$01                          ;
-  sta FIX_MIRRORING                 ;
-  @continue:                        ;
+  jmp skipLeftAnimation             ;
                                     ;
+continueLeftAnimation:              ;
   lda #$01                          ;
   sta DIRECTION1                    ;
                                     ;
@@ -440,22 +445,21 @@ loadLeftFrame4:                     ;
     cpx #$08                        ;
     bne @loop                       ;
   jmp endLoadLeftAnimation          ;
+                                    ;
+skipLeftAnimation:                  ;
+  rts                               ;
 ;-----------------------------------;
 
 ;Load the animation of walking to the right
 ;-----------------------------------;
 loadRightAnimation:                 ;
-  ; lda PLAYER_STATUS1              ;
-  ; and %11111110                   ;
-  ; sta PLAYER_STATUS1              ;
-                                    ;
-  lda DIRECTION1                    ; 
+  lda $0008                         ;
   cmp #$01                          ;
-  bne @continue                     ;
-  lda #$01                          ;
-  sta FIX_MIRRORING                 ;
-  @continue:                        ;
+  bne continueRightAnimation        ;
                                     ;
+  jmp skipRightAnimation            ;
+                                    ;
+continueRightAnimation:             ;
   lda #$00                          ; 
   sta DIRECTION1                    ;
                                     ;
@@ -562,33 +566,234 @@ loadRightFrame4:                    ;
     cpx #$08                        ;
     bne @loop                       ;
   jmp endLoadRightAnimation         ;
-;-----------------------------------;
-
-
-; Fixes a problem that occurs when reversing the tiles
-; vertically when making the character change direction.
-; This problem arises since we must remember that the
-; character is made of 4 tiles and what is inverted
-; are those 4 tiles, not the complete character.
-; So you have to reflect the tiles but also exchange positions.
-;-----------------------------------;
-checkAndFixMirroring:               ;
-  lda FIX_MIRRORING                 ;
-  cmp #$01                          ;
-  bne endCheckAndFixMirroring       ;
-    ldx $0227                       ;
-    ldy $022B                       ;
                                     ;
-    sty $0227                       ;
-    sty $022F                       ;
-    stx $022B                       ;
-    stx $0233                       ;
-                                    ;
-    lda #$00                        ;
-    sta FIX_MIRRORING               ;
-endCheckAndFixMirroring:            ;
+skipRightAnimation:                 ;
   rts                               ;
-;-----------------------------------; 
+;-----------------------------------;
+
+;-----read inputs of control 1-------;
+  readController1:                   ;
+    lda #1                           ;
+    sta INPUT1                       ;
+                                     ;
+    sta $4016                        ;
+    lda #0                           ;
+    sta $4016                        ;
+  readLoop:                          ;
+    lda $4016                        ;
+    lsr a                            ;
+    rol INPUT1                       ;
+    bcc readLoop                     ;
+    rts                              ;
+;------------------------------------;
+
+;-----------check left button------------;
+  checkLeftButtonPressed:                ;
+    lda INPUT1                           ;
+    and #%00000010                       ;
+    beq endCheckLeftButtonPressed        ;
+    jsr loadLeftAnimation                ;
+    jsr moveToLeftPlayer1                ;
+  endCheckLeftButtonPressed:             ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check right button-----------;
+  checkRightButtonPressed:               ;
+    lda INPUT1                           ;
+    and #%00000001                       ;
+    beq endCheckRightButtonPressed       ;
+    jsr loadRightAnimation               ;
+    jsr moveToRightPlayer1               ;
+  endCheckRightButtonPressed:            ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check up button--------------;
+  checkUpButtonPressed:                  ;
+    lda INPUT1                           ;
+    and #%00001000                       ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check down button------------;
+  checkDownButtonPressed:                ;
+    lda INPUT1                           ;
+    and #%00000100                       ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check select button----------;
+  checkSelectButtonPressed:              ;
+    lda INPUT1                           ;
+    and #%00100000                       ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check start button-----------;
+  checkStartButtonPressed:               ;
+    lda INPUT1                           ;
+    and #%00010000                       ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check A button---------------;
+  checkAButtonPressed:                   ;
+    lda INPUT1                           ;
+    and #%01000000                       ;
+    beq endCheckAButtonPressed           ;
+  endCheckAButtonPressed:                ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check B button---------------;
+  checkBButtonPressed:                   ;
+    lda INPUT1                           ;
+    and #%10000000                       ;
+    beq endCheckBButtonPressed           ;
+  endCheckBButtonPressed:                ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check if not moving----------;
+  checkNotMovingPressed:                 ;
+    lda INPUT1                           ;
+    and #%00000011                       ;
+    bne @else                            ;
+      jsr loadStillFrame                 ;  <--- if not moving
+    jmp endcheckNotMovingPressed         ;
+  @else:                                 ;
+                                         ;  <--- if moving
+  endcheckNotMovingPressed:              ;
+    rts                                  ;
+;----------------------------------------;
+
+;Moves to the left the 4 tiles saved in RAM by 1 pixels.
+;---------------------;
+moveToLeftPlayer1:    ;
+  clc                 ;
+  lda $0227           ;
+  cmp #$0010          ;
+  bcc endMoveToLeft   ;
+                      ;
+  clc                 ;
+  lda $0227           ;
+  sbc #$0001          ;
+  sta $0227           ;
+                      ;
+  clc                 ; 
+  lda $022B           ;
+  sbc #$0001          ;
+  sta $022B           ;
+                      ;
+  clc                 ;
+  lda $022F           ;
+  sbc #$0001          ;
+  sta $022F           ;
+                      ;
+  clc                 ;
+  lda $0233           ;
+  sbc #$0001          ;
+  sta $0233           ;
+                      ;
+  lda #$00            ;
+  sta $0008           ;
+  rts                 ;
+                      ;
+endMoveToLeft:        ;
+  lda #$01            ;
+  sta $0008           ;
+  rts                 ;
+;---------------------;
+
+
+;Moves to the right the 4 tiles saved in RAM by 2 pixels.
+;---------------------;
+moveToRightPlayer1:   ;
+  clc                 ;
+  lda $0227           ;
+  cmp #$00F8          ;
+  bcs endMoveToRight  ;
+                      ;
+  clc                 ;
+  lda $0227           ;
+  adc #$0002          ;
+  sta $0227           ;
+                      ;
+  clc                 ;
+  lda $022B           ;
+  adc #$0002          ;
+  sta $022B           ;
+                      ;
+  clc                 ;
+  lda $022F           ;
+  adc #$0002          ;
+  sta $022F           ;
+                      ;
+  clc                 ;
+  lda $0233           ;
+  adc #$0002          ;
+  sta $0233           ;
+                      ;
+  lda #$00            ;
+  sta $0008           ;
+  rts                 ;
+                      ;
+endMoveToRight:       ;  
+  lda #$01            ;
+  sta $0008           ;       
+  rts                 ;
+;---------------------;
+
+;-------------------------------;
+gravityEffect:                  ;
+  jsr checkIfTouchingFloor      ;
+                                ;
+  clc                           ;
+  lda IS_TOUCHING_FLOOR         ;
+  cmp #$0001                    ;
+  beq endGravityEffect          ;
+                                ;
+  clc                           ;
+  lda $0224                     ;
+  adc #GRAVITY                  ;
+  sta $0224                     ;
+                                ;
+  clc                           ;
+  lda $0228                     ;
+  adc #GRAVITY                  ;
+  sta $0228                     ;
+                                ;
+  clc                           ;
+  lda $022C                     ;
+  adc #GRAVITY                  ;
+  sta $022C                     ;
+                                ;
+  clc                           ;
+  lda $0230                     ;
+  adc #GRAVITY                  ;
+  sta $0230                     ;
+                                ;
+endGravityEffect:               ;
+    rts                         ; 
+;-------------------------------;
+
+;-------------------------------;
+checkIfTouchingFloor:           ;
+  clc                           ;
+  lda #$0000                    ;
+  sta IS_TOUCHING_FLOOR         ;
+                                ;
+  clc                           ;
+  lda $0224                     ;
+  cmp #$AD                      ;
+  bmi endCheckIfTouchingFloor   ;
+  lda #$0001                    ;
+  sta IS_TOUCHING_FLOOR         ;
+                                ;
+endCheckIfTouchingFloor:        ;
+  rts                           ;
+;-------------------------------;
 
 
 ;--------------------------- Binary/Hexadecimal Data ---------------------------
