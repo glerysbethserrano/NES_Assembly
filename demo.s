@@ -20,16 +20,16 @@
 .segment "CODE"         ; Main code segment for the program
 
 reset:
-  sei		            ; disable IRQs
-  cld		            ; disable decimal mode
+  sei		                ; disable IRQs
+  cld		                ; disable decimal mode
   ldx #$40
   stx $4017	            ; disable APU frame IRQ
-  ldx #$ff       	    ; Set up stack
+  ldx #$ff       	      ; Set up stack
   txs		
-  inx		            ; now X = 0
-  stx PPUCTRL	        ; disable NMI
+  inx		                ; now X = 0
+  stx PPUCTRL	          ; disable NMI
   stx PPUMASK 	        ; disable rendering
-  stx $4010 	        ; disable DMC IRQs
+  stx $4010 	          ; disable DMC IRQs
 
 ;---------------------- first wait for vblank to make sure PPU is ready
 vblankwait1:          ;
@@ -60,11 +60,8 @@ vblankwait2:          ;
 
 main:
     jsr initializePlayer1
-
     jsr load_palettes
-
     jsr LoadAttr
-
     jsr LoadBackground1
 
 ;***************************   Main   ***************************
@@ -86,7 +83,6 @@ main:
 ; |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
 ; +--------- Generate an NMI at the start of the
 ;            vertical blanking interval (0: off; 1: on)
-
 
 ; PPUMASK
 ; 7  bit  0
@@ -117,6 +113,7 @@ forever:        ;
 
 ; ***************************   Start of NMI   ***************************
 nmi:  
+
   ;-----;
   PHA   ;                                
   TXA   ;                                                         
@@ -125,27 +122,46 @@ nmi:
   PHA   ;       
   ;-----;
 
- ;-----------;
+ ;------------;
   ldx #$0000  ;
-  stx $2003   ;This is where the 64 sprites will be stored.
+  stx $2003   ; This is where the 64 sprites will be stored.
   ;-----------;
 
   jsr readController1
+
+  lda COUNTER_HEALTH
+  cmp #$03
+  bmi notDead
+  jsr loadDeadFrame
+  jmp endButtonCheck
+
+  notDead:
   jsr checkLeftButtonPressed
   jsr checkRightButtonPressed
-  jsr checkUpButtonPressed 
-  jsr checkDownButtonPressed
-  jsr checkSelectButtonPressed
-  jsr checkStartButtonPressed
   jsr checkAButtonPressed 
   jsr checkBButtonPressed 
+  jsr checkSelectButtonPressed
   jsr checkNotMovingPressed
+
+  lda SELECT_PRESSED
+  cmp #$01
+  bne endButtonCheck
+  inc $0226
+  inc $022A
+  inc $022E
+  inc $0232
+
+  endButtonCheck:
   jsr gravityEffect
+  
 
   ;-----------;
   lda #$02    ;
   sta $4014   ; This makes a copy of the memory space at address $0200 to $02FF in the PPU OAM.
   ;-----------;
+  
+  lda #$0000
+  sta $2005
 
   ;-----;
   PLA   ;                                    
@@ -161,18 +177,6 @@ nmi:
 
 ;--------------- Subrutines that make everything possible! ---------------
 
-;----Load Player sprites----;
-loadPlayerSprites:	        ;
-  ldx #$00                  ;
-  @loop1:                   ;
-    lda playerSprites, x    ;
-    sta $0224, x            ;
-    inx                     ;
-    cpx #$90                ;
-    bne @loop1              ;
-    rts                     ;
-;---------------------------;
-
 ;------Load Attribute Table-----;
 LoadAttr:                       ;
     lda PPUSTATUS               ;
@@ -182,7 +186,7 @@ LoadAttr:                       ;
     STA $2006                   ;
     LDX #$00                    ;
 LoadAttrLoop:                   ;
-    LDA attributeTable0, x      ;
+    LDA attributeTable, x      ;
     STA $2007                   ;
     INX                         ;
     CPX #$40                    ;
@@ -251,7 +255,7 @@ LoadBackgroundLoop4:                    ;
     rts                                 ;
 ;---------------------------------------;
 
-;----Initialize values for player 1----;
+;-----Initialize values for player-----;
 initializePlayer1:                     ;
   ldx #$00                             ;
   stx INDEX_FRAME1                     ; INDEX_FRAME = 0
@@ -277,6 +281,55 @@ initializePlayer1Sprites:              ;
   rts                                  ;
 ;--------------------------------------;
 
+; Load dead character sprites
+;----------------------------------;
+loadDeadFrame:                     ;
+  lda DIRECTION1                   ;
+  and #%00000001                   ; 
+  bne @else                        ;
+    jsr loadDeadRight              ; If islooking to the left
+    jmp endLoadDeadFrame           ;
+  @else:                           ;
+    jsr loadDeadLeft               ; If islooking to the right
+endLoadDeadFrame:                  ;
+  rts                              ;
+                                   ;
+loadDeadLeft:                      ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda deadLeft, x                ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda deadLeft, x                ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+                                   ;
+loadDeadRight:                     ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda deadRight, x               ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda deadRight, x               ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+;----------------------------------;
 
 ; Load character sprite while not moving
 ;----------------------------------;
@@ -284,10 +337,10 @@ loadStillFrame:                    ;
   lda DIRECTION1                   ;
   and #%00000001                   ; 
   bne @else                        ;
-    jsr loadStillRight             ;If islooking to the left
+    jsr loadStillRight             ; If islooking to the left
     jmp endLoadStillFrame          ;
   @else:                           ;
-    jsr loadStillLeft              ;If islooking to the right
+    jsr loadStillLeft              ; If islooking to the right
 endLoadStillFrame:                 ;
   rts                              ;
                                    ;
@@ -328,6 +381,103 @@ loadStillRight:                    ;
   rts                              ;
 ;----------------------------------;
 
+; Load character sprite when attacking
+;----------------------------------;
+loadAttackFrame:                   ;
+  lda DIRECTION1                   ;
+  and #%00000001                   ; 
+  bne @else                        ;
+    jsr loadAttackRight            ; If islooking to the left
+    jmp endLoadAttackFrame         ;
+  @else:                           ;
+    jsr loadAttackLeft             ; If islooking to the right
+endLoadAttackFrame:                ;
+  rts                              ;
+                                   ;
+loadAttackLeft:                    ;
+  clc                              ;
+  lda IS_TOUCHING_FLOOR            ;
+  cmp #$0001                       ;
+  beq loadFloorAttackLeft          ;
+                                   ;
+  loadAirAttackLeft:               ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda leftFrame5, x              ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda leftFrame5, x              ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+                                   ;
+  loadFloorAttackLeft:             ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda leftFrame6, x              ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda leftFrame6, x              ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+                                   ;
+loadAttackRight:                   ;
+  clc                              ;
+  lda IS_TOUCHING_FLOOR            ;
+  cmp #$0001                       ;
+  beq loadFloorAttackRight         ;
+                                   ;
+  loadAirAttackRight:              ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda rightFrame5, x             ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda rightFrame5, x             ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+                                   ;
+  loadFloorAttackRight:            ;
+  ldx #$00                         ;
+  ldy #$00                         ;
+  @loop:                           ;
+    lda rightFrame6, x             ;
+    sta $0225, y                   ;
+    iny                            ;
+    inx                            ;
+    lda rightFrame6, x             ;
+    sta $0225, y                   ;
+    inx                            ;
+    iny                            ;
+    iny                            ;
+    iny                            ;
+    cpx #$08                       ;
+    bne @loop                      ;
+  rts                              ;
+;----------------------------------;
 
 ; Load the animation of walking to the left
 ;-----------------------------------;
@@ -450,7 +600,7 @@ skipLeftAnimation:                  ;
   rts                               ;
 ;-----------------------------------;
 
-;Load the animation of walking to the right
+; Load the animation of walking to the right
 ;-----------------------------------;
 loadRightAnimation:                 ;
   lda $0008                         ;
@@ -571,6 +721,56 @@ skipRightAnimation:                 ;
   rts                               ;
 ;-----------------------------------;
 
+; Load the animation of jumping
+;-----------------------------------;
+loadJumpFrame:                      ;
+lda DIRECTION1                      ;
+  and #%00000001                    ; 
+  bne @else                         ;
+    jsr loadJumpRight               ; If islooking to the left
+    jmp endLoadJumpFrame            ;
+  @else:                            ;
+    jsr loadJumpLeft                ; If islooking to the right
+endLoadJumpFrame:                   ;
+  rts                               ;
+                                    ;
+loadJumpLeft:                       ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda leftFrame3, x               ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda leftFrame3, x               ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ;
+    bne @loop                       ;
+  rts                               ;
+                                    ; 
+loadJumpRight:                      ;
+  ldx #$00                          ;
+  ldy #$00                          ;
+  @loop:                            ;
+    lda rightFrame3, x              ;
+    sta $0225, y                    ;
+    iny                             ;
+    inx                             ;
+    lda rightFrame3, x              ;
+    sta $0225, y                    ;
+    inx                             ;
+    iny                             ;
+    iny                             ;
+    iny                             ;
+    cpx #$08                        ; 
+    bne @loop                       ;
+  rts                               ;
+;-----------------------------------;
+
 ;-----read inputs of control 1-------;
   readController1:                   ;
     lda #1                           ;
@@ -609,39 +809,16 @@ skipRightAnimation:                 ;
     rts                                  ;
 ;----------------------------------------;
 
-;-----------check up button--------------;
-  checkUpButtonPressed:                  ;
-    lda INPUT1                           ;
-    and #%00001000                       ;
-    rts                                  ;
-;----------------------------------------;
-
-;-----------check down button------------;
-  checkDownButtonPressed:                ;
-    lda INPUT1                           ;
-    and #%00000100                       ;
-    rts                                  ;
-;----------------------------------------;
-
-;-----------check select button----------;
-  checkSelectButtonPressed:              ;
-    lda INPUT1                           ;
-    and #%00100000                       ;
-    rts                                  ;
-;----------------------------------------;
-
-;-----------check start button-----------;
-  checkStartButtonPressed:               ;
-    lda INPUT1                           ;
-    and #%00010000                       ;
-    rts                                  ;
-;----------------------------------------;
-
 ;-----------check A button---------------;
   checkAButtonPressed:                   ;
     lda INPUT1                           ;
-    and #%01000000                       ;
-    beq endCheckAButtonPressed           ;
+    and #%10000000                       ;
+    beq AButtonNotPressed                ;
+    jsr jumpingEffect                    ;
+    jmp endCheckAButtonPressed           ;
+  AButtonNotPressed:                     ;
+    lda #$19                             ;
+    sta COUNTER_JUMP                     ;
   endCheckAButtonPressed:                ;
     rts                                  ;
 ;----------------------------------------;
@@ -649,16 +826,36 @@ skipRightAnimation:                 ;
 ;-----------check B button---------------;
   checkBButtonPressed:                   ;
     lda INPUT1                           ;
-    and #%10000000                       ;
+    and #%01000000                       ;
     beq endCheckBButtonPressed           ;
+    jsr loadAttackFrame                  ;
   endCheckBButtonPressed:                ;
+    rts                                  ;
+;----------------------------------------;
+
+;-----------check select button----------;
+  checkSelectButtonPressed:              ;
+    lda INPUT1                           ;
+    and #%00100000                       ;
+    beq @else                            ; 
+    lda SELECT_PRESSED                   ;
+    cmp #$01                             ;
+    beq endCheckSelectButtonPressed      ;
+    inc COUNTER_HEALTH                   ;
+    lda #$01                             ;
+    sta SELECT_PRESSED                   ;
+    jmp endCheckSelectButtonPressed      ;
+  @else:                                 ;
+    lda #$00                             ;
+    sta SELECT_PRESSED                   ;
+  endCheckSelectButtonPressed:           ;
     rts                                  ;
 ;----------------------------------------;
 
 ;-----------check if not moving----------;
   checkNotMovingPressed:                 ;
     lda INPUT1                           ;
-    and #%00000011                       ;
+    and #%11000011                       ;
     bne @else                            ;
       jsr loadStillFrame                 ;  <--- if not moving
     jmp endcheckNotMovingPressed         ;
@@ -668,7 +865,7 @@ skipRightAnimation:                 ;
     rts                                  ;
 ;----------------------------------------;
 
-;Moves to the left the 4 tiles saved in RAM by 1 pixels.
+; Moves to the left the 4 tiles saved in RAM by 1 pixel.
 ;---------------------;
 moveToLeftPlayer1:    ;
   clc                 ;
@@ -707,12 +904,12 @@ endMoveToLeft:        ;
 ;---------------------;
 
 
-;Moves to the right the 4 tiles saved in RAM by 2 pixels.
+; Moves to the right the 4 tiles saved in RAM by 2 pixels.
 ;---------------------;
 moveToRightPlayer1:   ;
   clc                 ;
   lda $0227           ;
-  cmp #$00F8          ;
+  cmp #$00F6          ;
   bcs endMoveToRight  ;
                       ;
   clc                 ;
@@ -747,7 +944,11 @@ endMoveToRight:       ;
 
 ;-------------------------------;
 gravityEffect:                  ;
+  ldx COUNTER_JUMP              ;
+  cpx #$15                      ;
+  bmi endGravityEffect          ;
   jsr checkIfTouchingFloor      ;
+  jsr checkIfTouchingPlatform   ;
                                 ;
   clc                           ;
   lda IS_TOUCHING_FLOOR         ;
@@ -779,6 +980,39 @@ endGravityEffect:               ;
 ;-------------------------------;
 
 ;-------------------------------;
+jumpingEffect:                  ;
+  ldx COUNTER_JUMP              ;
+  inx                           ;
+  stx COUNTER_JUMP              ;
+  cpx #$15                      ;
+  bpl endJumpingEffect          ;
+  jsr loadJumpFrame             ;
+                                ;
+  clc                           ;
+  lda $0224                     ;
+  sbc #GRAVITY                  ;
+  sta $0224                     ;
+                                ;
+  clc                           ;
+  lda $0228                     ;
+  sbc #GRAVITY                  ;
+  sta $0228                     ;
+                                ;
+  clc                           ;
+  lda $022C                     ;
+  sbc #GRAVITY                  ;
+  sta $022C                     ;
+                                ;
+  clc                           ;
+  lda $0230                     ;
+  sbc #GRAVITY                  ;
+  sta $0230                     ;
+                                ;
+endJumpingEffect:               ;
+    rts                         ; 
+;-------------------------------;
+
+;-------------------------------;
 checkIfTouchingFloor:           ;
   clc                           ;
   lda #$0000                    ;
@@ -786,15 +1020,39 @@ checkIfTouchingFloor:           ;
                                 ;
   clc                           ;
   lda $0224                     ;
-  cmp #$AD                      ;
+  cmp #$B5                      ;
+  bpl endCheckIfTouchingFloor   ;   
+  cmp #$AF                      ;
   bmi endCheckIfTouchingFloor   ;
   lda #$0001                    ;
   sta IS_TOUCHING_FLOOR         ;
+  lda #$00                      ;
+  sta COUNTER_JUMP              ;
                                 ;
 endCheckIfTouchingFloor:        ;
   rts                           ;
 ;-------------------------------;
 
+;-----------------------------------;
+checkIfTouchingPlatform:            ;
+  lda $0227                         ;
+  cmp #$4D                          ;    <--- left
+  bmi endCheckIfTouchingPlatform    ;
+  cmp #$C0                          ;    <--- right
+  bpl endCheckIfTouchingPlatform    ;
+  lda $0224                         ;
+  cmp #$7F                          ;    <--- bottom
+  bpl endCheckIfTouchingPlatform    ;
+  cmp #$6F                          ;    <--- top
+  bmi endCheckIfTouchingPlatform    ;
+  lda #$0001                        ;
+  sta IS_TOUCHING_FLOOR             ;
+  lda #$00                          ;
+  sta COUNTER_JUMP                  ;
+                                    ;
+endCheckIfTouchingPlatform:         ;
+  rts                               ;
+;-----------------------------------;
 
 ;--------------------------- Binary/Hexadecimal Data ---------------------------
 
@@ -830,17 +1088,42 @@ leftFrame4:
   .byte $14, $40
   .byte $15, $40
 
+leftFrame5:               ; jumping attack
+  .byte $21, $40
+  .byte $22, $40
+  .byte $31, $40
+  .byte $32, $40
+
+leftFrame6:               ; walking attack
+  .byte $24, $40
+  .byte $25, $40
+  .byte $34, $40
+  .byte $35, $40
+
 stillLeft:
   .byte $01, $40 
   .byte $02, $40
   .byte $11, $40 
   .byte $12, $40 
 
+deadLeft:
+  .byte $00, $00
+  .byte $00, $00
+  .byte $1D, $40 
+  .byte $1E, $40
+  
+
 stillRight:
   .byte $02, $04 
   .byte $01, $04  
   .byte $12, $04 
   .byte $11, $04
+
+deadRight:
+  .byte $00, $00
+  .byte $00, $00
+  .byte $1E, $04 
+  .byte $1D, $04  
 
 rightFrame1:
   .byte $08, $04 
@@ -866,73 +1149,26 @@ rightFrame4:
   .byte $15, $04
   .byte $14, $04
 
+rightFrame5:               ; jumping attack
+  .byte $22, $04
+  .byte $21, $04
+  .byte $32, $04
+  .byte $31, $04
+
+rightFrame6:               ; walking attack
+  .byte $25, $04
+  .byte $24, $04
+  .byte $35, $04
+  .byte $34, $04
+
+  lifeSprite:
+  .byte $27, $04
+  .byte $28, $04
+  .byte $37, $04
+  .byte $38, $04
+
 ;*******************************************************
 
-; First byte
-; Y position
-
-; Second byte
-; NEXXT sprite tile index
-
-; Third byte
-; 7654 3210
-; |||| ||||
-; |||| ||++- Palette (4 to 7) of sprite
-; |||+ ++--- Unimplemented (read 0)
-; ||+------ Priority (0: in front of background; 1: behind background)
-; |+------- Flip sprite horizontally
-; +-------- Flip sprite vertically
-
-; Fourth byte
-; X position
-
-playerSprites:
-
-  moving1Right:
-    .byte $AD, $04, $04, $4C  ; Y=$AD(173), Sprite=04, Attribute=$04(00000100), X=$4C(76)
-    .byte $AD, $05, $04, $54  ; Y=$AD(173), Sprite=05, Attribute=$04(00000100), X=$54(84)
-    .byte $B5, $14, $04, $4C  ; Y=$B5(181), Sprite=14, Attribute=$04(00000100), X=$4C(76)
-    .byte $B5, $15, $04, $54  ; Y=$B5(181), Sprite=15, Attribute=$04(00000100), X=$54(84)
-
-  moving2Right:
-    .byte $AD, $07, $04, $5C  ; Y=$AD(173), Sprite=$07, Attribute=$04(00000100), X=$5C(92)
-    .byte $AD, $08, $04, $64  ; Y=$AD(173), Sprite=$08, Attribute=$04(00000100), X=$64(100)
-    .byte $B5, $17, $04, $5C  ; Y=$B5(181), Sprite=$17, Attribute=$04(00000100), X=$5C(92)
-    .byte $B5, $18, $04, $64  ; Y=$B5(181), Sprite=$18, Attribute=$04(00000100), X=$64(100)
-  
-  moving3Right:
-    .byte $AD, $0A, $04, $6C  ; Y=$AD(173), Sprite=$0A, Attribute=$04(00000100), X=$6C(108)
-    .byte $AD, $0B, $04, $74  ; Y=$AD(173), Sprite=$0B, Attribute=$04(00000100), X=$74(116)
-    .byte $B5, $1A, $04, $6C  ; Y=$B5(181), Sprite=$1A, Attribute=$04(00000100), X=$6C(108)
-    .byte $B5, $1B, $04, $74  ; Y=$B5(181), Sprite=$1B, Attribute=$04(00000100), X=$74(116)
-
-  deadRight:
-    .byte $40, $1D, $04, $60  ; Y=$40(64), Sprite=$1D, Attribute=$04(00000100), X=$60(58)
-    .byte $40, $1E, $04, $68  ; Y=$40(64), Sprite=$1E, Attribute=$04(00000100), X=$68(58)
-
-  moving1Left:
-    .byte $6D, $04, $40, $67  ; Y=$6D(109), Sprite=$04, Attribute=$40(01000000), X=$67(103)
-    .byte $6D, $05, $40, $5F  ; Y=$6D(109), Sprite=$05, Attribute=$40(01000000), X=$5F(95)
-    .byte $75, $14, $40, $67  ; Y=$B5(117), Sprite=$14, Attribute=$40(01000000), X=$8C(103)
-    .byte $75, $15, $40, $5F  ; Y=$B5(117), Sprite=$15, Attribute=$40(01000000), X=$67(95)
-
-  moving2Left:
-    .byte $6D, $07, $40, $77  ; Y=$6D(109), Sprite=$07, Attribute=$40(01000000), X=$77(119)
-    .byte $6D, $08, $40, $6F  ; Y=$6D(109), Sprite=$08, Attribute=$40(01000000), X=$6F(111)
-    .byte $75, $17, $40, $77  ; Y=$B5(117), Sprite=$17, Attribute=$40(01000000), X=$77(119)
-    .byte $75, $18, $40, $6F  ; Y=$B5(117), Sprite=$18, Attribute=$40(01000000), X=$6F(111)
-  
-  moving3Left:
-    .byte $6D, $0A, $40, $87  ; Y=$6D(109), Sprite=$0A, Attribute=$40(01000000), X=$87(135)
-    .byte $6D, $0B, $40, $7F  ; Y=$6D(109), Sprite=$0B, Attribute=$40(01000000), X=$7F(127)
-    .byte $75, $1A, $40, $87  ; Y=$B5(117), Sprite=$1A, Attribute=$40(01000000), X=$87(135)
-    .byte $75, $1B, $40, $7F  ; Y=$B5(117), Sprite=$1B, Attribute=$40(01000000), X=$7F(127)
-
-  deadLeft:
-    .byte $40, $1E, $40, $80  ; Y=$40(64), Sprite=$1E, Attribute=$40(01000000), X=$80(58)
-    .byte $40, $1D, $40, $88  ; Y=$40(64), Sprite=$1D, Attribute=$40(01000000), X=$88(58)
-
-                                      
 palettes:                            
         ;00  01   10   11                   
   .byte $0f, $37, $17, $27; 00              
@@ -940,13 +1176,12 @@ palettes:
   .byte $0f, $3c, $38, $19; 02              
   .byte $0f, $2d, $0c, $09; 03              
                                             
-  .byte $0f, $37, $17, $27; 04              
-  .byte $0f, $30, $17, $27; 05   foreground         
-  .byte $0f, $3c, $38, $19; 06              
-  .byte $0f, $2d, $0c, $09; 07              
+  .byte $0f, $37, $07, $0c; 04               
+  .byte $0f, $26, $07, $0c; 05   foreground         
+  .byte $0f, $16, $0f, $0f; 06              
+  .byte $0f, $3d, $0f, $0f; 07              
 
-
-attributeTable0:
+attributeTable:
   ; 7654 3210
   ; |||| ||++- Color bits 3-2 for top left quadrant of this byte
   ; |||| ++--- Color bits 3-2 for top right quadrant of this byte
@@ -962,11 +1197,10 @@ attributeTable0:
   .byte $00, $00, $00, $00, $00, $00, $40, $10 
   .byte $00, $00, $00, $00, $00, $00, $00, $00 
 
-
 background:
-    .byte $02,$02,$15,$02,$02,$15,$15,$15,$02,$02,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
+	.byte $02,$02,$15,$02,$02,$15,$15,$15,$02,$02,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$02,$02,$15,$15,$15,$15,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
-	.byte $02,$15,$02,$15,$15,$15,$15,$15,$15,$15,$02,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$16,$02,$16,$02,$16,$02,$02
+	.byte $02,$15,$02,$15,$15,$15,$15,$15,$15,$15,$02,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $15,$15,$02,$15,$15,$15,$15,$15,$15,$15,$02,$15,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$15,$02,$15,$15,$15,$15,$15,$15,$15,$02,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$02,$02,$15,$15,$15,$15,$15,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
@@ -980,7 +1214,7 @@ background:
 	.byte $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$09,$01,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$01,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$01,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
-	.byte $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$03,$04,$03,$04,$03,$04,$03,$04,$03,$04,$03,$04,$03,$04,$02,$02,$02,$02,$02,$02,$02,$02
+	.byte $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$04,$03,$03,$04,$03,$04,$03,$04,$03,$04,$03,$04,$03,$04,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$06,$07,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
 	.byte $02,$02,$05,$01,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
@@ -994,8 +1228,7 @@ background:
 	.byte $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$14,$11,$13,$01,$01,$01
 	.byte $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
 	.byte $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
-
-                                            
+                                    
 background_tiles:                           
 .segment "CHARS"                            
 .incbin "Project2_background_sprites.chr"                         
