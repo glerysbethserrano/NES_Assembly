@@ -67,38 +67,6 @@ main:
 
 ; -----------------------   Main   -----------------------
 
-;PPUCTRL
-; 7  bit  0
-; ---- ----
-; VPHB SINN
-; |||| ||||
-; |||| ||++- Base nametable address
-; |||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
-; |||| |+--- VRAM address increment per CPU read/write of PPUDATA
-; |||| |     (0: add 1, going across; 1: add 32, going down)
-; |||| +---- Sprite pattern table address for 8x8 sprites
-; ||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
-; |||+------ Background pattern table address (0: $0000; 1: $1000)
-; ||+------- Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see PPU OAM#Byte 1)
-; |+-------- PPU master/slave select
-; |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
-; +--------- Generate an NMI at the start of the
-;            vertical blanking interval (0: off; 1: on)
-
-; PPUMASK
-; 7  bit  0
-; ---- ----
-; BGRs bMmG
-; |||| ||||
-; |||| |||+- Greyscale (0: normal color, 1: produce a greyscale display)
-; |||| ||+-- 1: Show background in leftmost 8 pixels of screen, 0: Hide
-; |||| |+--- 1: Show sprites in leftmost 8 pixels of screen, 0: Hide
-; |||| +---- 1: Show background
-; |||+------ 1: Show sprites
-; ||+------- Emphasize red (green on PAL/Dendy)
-; |+-------- Emphasize green (red on PAL/Dendy)
-; +--------- Emphasize blue
-
 ;-----------------------;
 enable_rendering:       ;
   lda #%10010000	      ; Enable NMI
@@ -144,17 +112,11 @@ nmi:
   jsr checkBButtonPressed 
   jsr checkSelectButtonPressed
   jsr checkNotMovingPressed
-
-  lda SELECT_PRESSED1
-  cmp #$01
-  bne endButtonCheck
-  inc $0226
-  inc $022A
-  inc $022E
-  inc $0232
+  jsr checkIfColliding
 
   endButtonCheck:
   jsr gravityEffect
+
   ;------------------------------;
 
   ;********** Player 2 **********;
@@ -164,33 +126,53 @@ nmi:
   cmp #$03
   bmi notDead2
   jsr loadDeadFrame2
-  jmp endButtonCheck2
+  jmp Hurt2
 
   notDead2:
-  jsr checkLeftButtonPressed2
-  jsr checkRightButtonPressed2
-  jsr checkAButtonPressed2 
-  jsr checkBButtonPressed2 
-  jsr checkSelectButtonPressed2
-  jsr checkNotMovingPressed2
+    jsr checkLeftButtonPressed2
+    jsr checkRightButtonPressed2
+    jsr checkAButtonPressed2 
+    jsr checkBButtonPressed2 
+    jsr checkSelectButtonPressed2
+    jsr checkNotMovingPressed2
+    jsr checkIfColliding
 
-  lda SELECT_PRESSED2
-  cmp #$01
-  bne endButtonCheck2
-  inc $0236
-  inc $023A
-  inc $023E
-  inc $0242
+  Hurt2:
+    lda B_PRESSED2
+    cmp #$01
+    bne checkIfP2isHurt
+    lda IS_COLLIDING1
+    cmp #$01
+    bne checkIfP2isHurt
+    inc $0226
+    inc $022A
+    inc $022E
+    inc $0232
+    jsr loadHeartSprites
 
+  checkIfP2isHurt:
+    jsr loadHeartSprites
+    lda B_PRESSED1
+    cmp #$01
+    bne endButtonCheck2
+    lda IS_COLLIDING1
+    cmp #$01
+    bne endButtonCheck2
+    inc $0236
+    inc $023A
+    inc $023E
+    inc $0242
+  
   endButtonCheck2:
-  jsr gravityEffect2
+    jsr loadHeartSprites2
+    jsr gravityEffect2
   ;******************************;
 
   ;-----------;
   lda #$02    ;
   sta $4014   ; This makes a copy of the memory space at address $0200 to $02FF in the PPU OAM.
   ;-----------;
-  
+
   lda #$0000
   sta $2005
 
@@ -337,6 +319,86 @@ initializePlayer2Sprites:              ;
     bne @loop                          ;
   rts                                  ;
 ;**************************************;
+
+;---------------------------;
+loadHeartSprites:           ;
+  lda COUNTER_HEALTH1       ;
+  cmp #$01                  ;
+  beq DrawOneHeart          ; If 2, draw 1 heart
+  cmp #$02                  ;
+  beq DrawTwoHearts         ; If 1, draw 2 hearts
+                            ; If it is 0 (or any other value), then draw 3 hearts by default
+  DrawThreeHearts:          ;
+  ldx #$00                  ; Reset index for sprite data
+  @loop1:                   ;
+    lda Life, x             ; Load a byte from the heart sprite data
+    sta $0244, x            ; Store it in the sprite memory
+    inx                     ; Increment the index
+    cpx #$30                ; Compare the index with the byte count for 3 hearts
+    bne @loop1              ; Continue the loop if not reached the count
+  rts                       ; Return from subroutine
+                            ;
+DrawTwoHearts:              ;
+  ldx #$00                  ;
+  @loop2:                   ;
+    lda Life, x             ;
+    sta $0245, x            ;
+    inx                     ;
+    cpx #$20                ;
+    bne @loop2              ;
+  rts                       ;
+                            ;
+DrawOneHeart:               ;
+  ldx #$00                  ;
+  @loop3:                   ;
+    lda Life, x             ;
+    sta $0246, x            ;
+    inx                     ;
+    cpx #$10                ;
+    bne @loop3              ;
+  rts                       ;
+;---------------------------;
+
+;***************************;
+loadHeartSprites2:          ;
+  lda COUNTER_HEALTH2       ;
+  cmp #$01                  ;
+  beq DrawOneHeart2         ;
+  cmp #$02                  ;
+  beq DrawTwoHearts2        ;
+                            ;
+  DrawThreeHearts2:         ;
+  ldx #$00                  ;
+  @2loop1:                  ;
+    lda Life2, x            ;
+    sta $0274, x            ;
+    inx                     ;
+    cpx #$30                ;
+    bne @2loop1             ;
+  rts                       ;
+                            ;
+DrawTwoHearts2:             ;
+  ldx #$00                  ;
+  @2loop2:                  ;
+    lda Life2, x            ;
+    sta $0275, x            ;
+    inx                     ;
+    cpx #$20                ;
+    bne @2loop2             ;
+  rts                       ;
+                            ;
+DrawOneHeart2:              ;
+  ldx #$00                  ;
+  @2loop3:                  ;
+    lda Life2, x            ;
+    sta $0276, x            ;
+    inx                     ;
+    cpx #$10                ;
+    bne @2loop3             ;
+  rts                       ;
+;***************************;
+
+
 
 ; Load dead player 1 sprites
 ;----------------------------------;
@@ -1374,8 +1436,24 @@ loadJumpRight2:                     ;
   checkBButtonPressed:                   ;
     lda INPUT1                           ;
     and #%01000000                       ;
-    beq endCheckBButtonPressed           ;
+    beq @else                            ;
     jsr loadAttackFrame                  ;
+    lda B_PRESSED1                       ;
+    cmp #$01                             ;
+    beq endCheckBButtonPressed           ;
+    lda #$01                             ;
+    sta B_PRESSED1                       ;
+    lda COUNTER_HEALTH2                  ;
+    cmp #$03                             ;
+    beq endCheckBButtonPressed           ;
+    lda IS_COLLIDING1                    ;
+    cmp #$01                             ;
+    bne endCheckBButtonPressed           ;
+    inc COUNTER_HEALTH2                  ;
+    jmp endCheckBButtonPressed           ;
+  @else:                                 ;
+    lda #$00                             ;
+    sta B_PRESSED1                       ;
   endCheckBButtonPressed:                ;
     rts                                  ;
 ;----------------------------------------;
@@ -1385,16 +1463,16 @@ loadJumpRight2:                     ;
     lda INPUT1                           ;
     and #%00100000                       ;
     beq @else                            ; 
-    lda SELECT_PRESSED1                  ;
-    cmp #$01                             ;
-    beq endCheckSelectButtonPressed      ;
-    inc COUNTER_HEALTH1                  ;
-    lda #$01                             ;
-    sta SELECT_PRESSED1                  ;
-    jmp endCheckSelectButtonPressed      ;
+    ; lda SELECT_PRESSED1                ;
+    ; cmp #$01                           ;
+    ; beq endCheckSelectButtonPressed    ;
+    ; inc COUNTER_HEALTH1                ;
+    ; lda #$01                           ;
+    ; sta SELECT_PRESSED1                ;
+    ; jmp endCheckSelectButtonPressed    ;
   @else:                                 ;
-    lda #$00                             ;
-    sta SELECT_PRESSED1                  ;
+    ; lda #$00                           ;
+    ; sta SELECT_PRESSED1                ;
   endCheckSelectButtonPressed:           ;
     rts                                  ;
 ;----------------------------------------;
@@ -1468,8 +1546,24 @@ loadJumpRight2:                     ;
   checkBButtonPressed2:                  ;
     lda INPUT2                           ;
     and #%01000000                       ;
-    beq endCheckBButtonPressed2          ;
+    beq @else                            ;
     jsr loadAttackFrame2                 ;
+    lda B_PRESSED2                       ;
+    cmp #$01                             ;
+    beq endCheckBButtonPressed2          ;
+    lda #$01                             ;
+    sta B_PRESSED2                       ;
+    lda COUNTER_HEALTH1                  ;
+    cmp #$03                             ;
+    beq endCheckBButtonPressed2          ;
+    lda IS_COLLIDING1                    ;
+    cmp #$01                             ;
+    bne endCheckBButtonPressed2          ;
+    inc COUNTER_HEALTH1                  ;
+    jmp endCheckBButtonPressed2          ;
+  @else:                                 ;
+    lda #$00                             ;
+    sta B_PRESSED2                       ;
   endCheckBButtonPressed2:               ;
     rts                                  ;
 ;****************************************;
@@ -1479,16 +1573,16 @@ loadJumpRight2:                     ;
     lda INPUT2                           ;
     and #%00100000                       ;
     beq @else                            ; 
-    lda SELECT_PRESSED2                  ;
-    cmp #$01                             ;
-    beq endCheckSelectButtonPressed2     ;
-    inc COUNTER_HEALTH2                  ;
-    lda #$01                             ;
-    sta SELECT_PRESSED2                  ;
-    jmp endCheckSelectButtonPressed2     ;
+    ; lda SELECT_PRESSED2                ;
+    ; cmp #$01                           ;
+    ; beq endCheckSelectButtonPressed2   ;
+    ; inc COUNTER_HEALTH2                ;
+    ; lda #$01                           ;
+    ; sta SELECT_PRESSED2                ;
+    ; jmp endCheckSelectButtonPressed2   ;
   @else:                                 ;
-    lda #$00                             ;
-    sta SELECT_PRESSED2                  ;
+    ; lda #$00                           ;
+    ; sta SELECT_PRESSED2                ;
   endCheckSelectButtonPressed2:          ;
     rts                                  ;
 ;****************************************;
@@ -1882,6 +1976,40 @@ endCheckIfTouchingPlatform2:        ;
   rts                               ;
 ;***********************************;
 
+; Collision between two players (Axis-aligned Bounding Box)
+;---------------------------------;
+checkIfColliding:                 ;
+clc                               ;
+lda #$0000                        ;
+sta IS_COLLIDING1                 ;
+                                  ;
+lda $0237                         ; X position of player 2
+clc                               ;
+adc #$10                          ; + width of player two
+cmp $0227                         ; X position of player 1
+bmi endCheckIfColliding           ;
+lda $0227                         ;
+clc                               ;
+adc #$10                          ;
+cmp $0237                         ;
+bmi endCheckIfColliding           ;
+lda $0234                         ;
+clc                               ;
+adc #$10                          ;
+cmp $0224                         ;
+bmi endCheckIfColliding           ;
+lda $0224                         ;
+clc                               ;
+adc #$10                          ;
+cmp $0234                         ;
+bmi endCheckIfColliding           ;
+lda #$0001                        ;
+sta IS_COLLIDING1                 ;
+                                  ;
+endCheckIfColliding:              ;
+rts                               ;
+;---------------------------------;
+
 ;--------------------------- Binary/Hexadecimal Data ---------------------------
 
 ;----------------------------- Animation -----------------------------
@@ -1991,11 +2119,24 @@ right1Frame6:               ; walking attack
   .byte $35, $04
   .byte $34, $04
 
-  life1Sprite:
-  .byte $27, $04
-  .byte $28, $04
-  .byte $37, $04
-  .byte $38, $04
+Life:
+  heart1Sprite:
+    .byte $00, $00, $00, $00
+    .byte $00, $00, $00, $00
+    .byte $10, $3A, $40, $AA
+    .byte $00, $00, $00, $00
+
+  heart1Sprite2:
+    .byte $00, $00, $00, $00
+    .byte $00, $00, $00, $00
+    .byte $10, $3A, $40, $C0
+    .byte $00, $00, $00, $00
+
+  heart1Sprite3:
+    .byte $00, $00, $00, $00
+    .byte $00, $00, $00, $00
+    .byte $10, $3A, $40, $D6
+    .byte $00, $00, $00, $00
 
 ; ******************** Player 2 ********************
 
@@ -2102,11 +2243,24 @@ right2Frame6:               ; walking attack
   .byte $35, $06
   .byte $34, $06
 
-life2Sprite:
-  .byte $27, $06
-  .byte $28, $06
-  .byte $37, $06
-  .byte $38, $06
+Life2:
+  heart2Sprite:
+    .byte $00, $00, $00, $00
+    .byte $00, $00, $00, $00
+    .byte $1A, $3A, $42, $AA
+    .byte $00, $00, $00, $00
+
+  heart2Sprite2:
+    .byte $00, $00, $00, $00
+    .byte $00, $00, $00, $00
+    .byte $1A, $3A, $42, $C0
+    .byte $00, $00, $00, $00
+
+  heart2Sprite3:
+    .byte $00, $00, $00, $00
+    .byte $00, $00, $00, $00
+    .byte $1A, $3A, $42, $D6
+    .byte $00, $00, $00, $00
 
 ;----------------------------------------------------
 
